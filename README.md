@@ -164,14 +164,14 @@ python -m embodiedbench.envs.eb_alfred.EBAlfEnv
 
 - Install [Habitat-Sim](https://github.com/facebookresearch/habitat-sim) and [Habitat-Lab](https://github.com/facebookresearch/habitat-lab) via
 
- ```bash
+```bash
 conda activate embench
 conda install -y habitat-sim==0.3.0 withbullet  headless -c conda-forge -c aihabitat
 git clone -b 'v0.3.0' --depth 1 https://github.com/facebookresearch/habitat-lab.git ./habitat-lab
 cd ./habitat-lab
 pip install -e habitat-lab
 cd ..
- ```
+```
 
 - Download YCB and ReplicaCAD dataset for the Language Rearrangement task. 
 ```bash

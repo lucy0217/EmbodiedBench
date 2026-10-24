@@ -11,6 +11,21 @@ from embodiedbench.planner.remote_model import RemoteModel
 from embodiedbench.planner.custom_model import CustomModel
 from embodiedbench.main import logger
 
+
+def is_structured_output_error(error):
+    """Recognize only the Transformers service's output-validation failures."""
+    if getattr(error, 'status_code', None) != 500:
+        return False
+    body = getattr(error, 'body', None)
+    if not isinstance(body, dict):
+        return False
+    detail = body.get('detail')
+    return isinstance(detail, str) and detail.startswith((
+        'Constrained decoding produced invalid JSON:',
+        'Model output failed JSON schema validation:',
+    ))
+
+
 class VLMPlanner():
     def __init__(self, model_name, model_type, actions, system_prompt, examples, n_shot=0, obs_key='head_rgb', 
                 chat_history=False, language_only=False, use_feedback=True, multistep=0, tp=1, kwargs={}):
@@ -219,25 +234,30 @@ class VLMPlanner():
                     text_content = content_item["text"]
                     logger.debug(f"Model Input:\n{text_content}\n")
 
-        if 'gemini-1.5-pro' in self.model_name or 'gemini-2.0-flash' in self.model_name:
-            try: 
+        is_gemini = 'gemini-1.5-pro' in self.model_name or 'gemini-2.0-flash' in self.model_name
+        for attempt in range(2):
+            try:
                 out = self.model.respond(self.episode_messages)
-                time.sleep(15)
+                if is_gemini and attempt == 0:
+                    time.sleep(15)
+                break
             except Exception as e:
+                if is_structured_output_error(e):
+                    # Match json_to_action()'s invalid-JSON accounting. Returning
+                    # -1 lets the evaluator terminate after its invalid-action
+                    # budget and save the episode instead of retrying forever.
+                    self.output_json_error += 1
+                    self.planner_steps += 1
+                    reasoning = e.body['detail']
+                    logger.warning(f"Model output validation failed: {reasoning}")
+                    return -1, reasoning
+                if attempt == 1:
+                    raise
                 print("An unexpected error occurred:", e)
-                time.sleep(60)
-                out = self.model.respond(self.episode_messages)
-        else:
-            try: 
-                out = self.model.respond(self.episode_messages)
-            except Exception as e:
-                print("An unexpected error occurred:", e)
-
-                if self.model_type != 'local':
+                if is_gemini or self.model_type != 'local':
                     time.sleep(60)
                 else:
                     time.sleep(20)
-                out = self.model.respond(self.episode_messages)
         logger.debug(f"Model Output:\n{out}\n")
 
         if self.chat_history:

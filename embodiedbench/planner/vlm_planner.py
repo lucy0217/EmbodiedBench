@@ -67,7 +67,7 @@ class VLMPlanner():
         user_instruction = user_instruction.rstrip('.')
         if len(prev_act_feedback) == 0:
             if self.n_shot >= 1:
-                prompt = self.system_prompt.format(len(self.actions)-1, self.available_action_str, '\n\n'.join([f'## Task Execution Example {i}: \n {x}' for i,x in enumerate(self.examples[:self.n_shot])])) 
+                prompt = self.system_prompt.format(len(self.actions)-1, self.available_action_str, '\n\n'.join([f'## Task Execution Example {i}: \n {x}' for i,x in enumerate(self.examples[:self.n_shot])]))
             else:
                 prompt = self.system_prompt.format(len(self.actions)-1, self.available_action_str, '')
 
@@ -92,7 +92,7 @@ class VLMPlanner():
                 prompt += f'''\n\n Considering the above interaction history and the current image state, to achieve the human instruction: '{user_instruction}', you are supposed to output in json. You need to describe current visual state from the image, summarize interaction history {'and environment feedback ' if self.use_feedback else ''}and reason why the last action or plan failed and did not finish the task, output your new plan to achieve the goal from current state. At the end, output the excutable plan with action ids(0 ~ {len(self.actions)-1}) from the available actions.'''
         else:
             if self.n_shot >= 1:
-                prompt = self.system_prompt.format(len(self.actions)-1, self.available_action_str, '\n\n'.join([f'## Task Execution Example  {i}: \n {x}' for i,x in enumerate(self.examples[:self.n_shot])])) 
+                prompt = self.system_prompt.format(len(self.actions)-1, self.available_action_str, '\n\n'.join([f'## Task Execution Example {i}: \n {x}' for i,x in enumerate(self.examples[:self.n_shot])]))
             else:
                 prompt = self.system_prompt.format(len(self.actions)-1, self.available_action_str, '')
             prompt += f'\n\n## Now the human instruction is: {user_instruction}.'
